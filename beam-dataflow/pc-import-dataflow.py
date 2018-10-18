@@ -1,5 +1,7 @@
 import datetime
 import json
+import re
+import random
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -9,6 +11,8 @@ from googledatastore import helper as datastore_helper
 
 from settings import PROJECT, BUCKET, INPUT_FILENAME
 
+regex_replace = re.compile('[\W_]+')
+
 
 class JSONtoDict(beam.DoFn):
 	"""Converts line into dictionary"""
@@ -17,8 +21,13 @@ class JSONtoDict(beam.DoFn):
 			element = json.loads(element)
 			product_name = element['name']
 			sku = element['sku']
-			data = {"sku": sku, "name": product_name}
-			return [data]
+			name_lst = regex_replace.sub(' ', product_name.lower()).split(' ')
+			name_lst = [x for x in name_lst if x and len(x) > 2]
+			data = []
+			for name_items in name_lst:
+				sku = sku + random.randint(1,sku)
+				data.append ({"idx": name_items, "name": product_name, "skupxy": sku})
+			return data
 		except Exception:
 			pass
 
@@ -26,7 +35,7 @@ class CreateEntities(beam.DoFn):
 	"""Creates Datastore entity"""
 	def process(self, element):
 		entity = entity_pb2.Entity()
-		datastore_helper.add_key_path(entity.key, 'Products', element['sku'])
+		datastore_helper.add_key_path(entity.key, 'ProductsIndex',element['skupxy'])
 		datastore_helper.add_properties(entity, element)
 		return [entity]
 
