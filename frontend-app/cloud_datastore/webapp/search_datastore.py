@@ -4,6 +4,7 @@ from models import ProductsIndex
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 
+
 class DatastoreSearchAPI(SearchEngine):
     def insert_bulk(self, items):
         to_save = []
@@ -17,15 +18,12 @@ class DatastoreSearchAPI(SearchEngine):
         product.put()
 
     def search(self, query):
-        print "Inside DatastoreSearchAPI"
         results = memcache.get(query)
         if results is None:
            results = ProductsIndex.search(query)
            memcache.add(query, results, 86400)
         output = []
-        print "Results from query - ", results
         for item in results:
-            print "Name - ", item.name
             out = {
                 'value': item.name,
                 'label': item.name,

@@ -1,4 +1,5 @@
 import logging
+import base64
 
 from flask import Flask, render_template, request
 from flask.json import jsonify
@@ -11,7 +12,8 @@ from models import ProductsIndex
 app = Flask(__name__)
 app.debug = True
 search_client = DatastoreSearchAPI()
-
+project_id = 'extended-signal-219515'
+topic_name = 'search-weights'
 
 @app.route('/')
 def index():
@@ -23,8 +25,23 @@ def search():
     """based on user query it executes search and returns list of item in json"""
     query = request.args.get('query', '')
     results = search_client.search(query)
-    print results
     return jsonify(results)
+
+@app.route('/submitEvent')
+def submitEvent():
+    """gets data for one product and saves into search index"""
+    # Publisher.
+    from googleapiclient.discovery import build
+    service = build('pubsub', 'v1')
+    mytopic = 'projects/extended-signal-219515/topics/search-weights'
+    data = request.args.get('search', '')
+    service.projects().topics().publish(topic=mytopic, body={
+      "messages":
+        [{
+         "data": base64.b64encode(data.encode('utf-8'))
+        }]
+    }).execute()
+    return 'ok'
 
 
 @app.route('/upload', methods=['POST'])
